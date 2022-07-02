@@ -55,27 +55,71 @@ def create_logger(logger_name: str) -> logging.Logger:
 """
 
 
-def execute(args):
-    os.makedirs(args.name, exist_ok=True)
-    open(os.path.join(args.name, "__init__.py"), "w").close()
-    open(os.path.join(args.name, "config.py"), "w").close()
+config = """from pydantic import BaseSettings, Field
 
-    with open(os.path.join(args.name, "logger.py"), "w") as file:
-        file.write(logger)
+
+class Settings(BaseSettings):
+    ...
+
+
+settings = Settings()
+"""
+
+
+def generate_directories(args):
+    # generate the root directory of the source code
+    os.makedirs(args.name, exist_ok=True)
+
+    if args.tests:
+        # the directory that will contains the tests files
+        os.makedirs("tests", exist_ok=True)
+
+
+def generate_files(args):
+    # in order to consider the root directory as a python library directory
+    open(os.path.join(args.name, "__init__.py"), "w").close()
+
+    if args.config:
+        with open(os.path.join(args.name, "config.py"), "w") as file:
+            file.write(config)
+
+    if args.logger:
+        with open(os.path.join(args.name, "logger.py"), "w") as file:
+            file.write(logger)
+
+
+def configure_poetry_project(args):
+    description = input("Write a project description: ") or "Default description"
 
     output_lines = []
     with open("pyproject.toml") as file:
         for line in file.readlines():
             if "name = " in line:
                 line = re.sub(r"\"[\w-]+\"", f"\"{args.name}\"", line)
+            if "description = " in line:
+                line = re.sub(r"\"[\w-]+\"", f"\"{description}\"", line)
+
+            if "[tool.poetry.dev-dependencies]" in line:
+                if args.config:
+                    output_lines[-1] = "pydantic = \"^1.9.1\""
+                    output_lines.append("\n")
+
             output_lines.append(line)
 
     with open("pyproject.toml", "w") as file:
         for line in output_lines:
             file.write(line)
 
-    if args.tests:
-        os.makedirs("tests", exist_ok=True)
+
+def execute(args):
+    if args.all:
+        args.tests = True
+        args.config = True
+        args.logger = True
+
+    generate_directories(args)
+    generate_files(args)
+    configure_poetry_project(args)
 
 
 def main():
@@ -85,7 +129,19 @@ def main():
         "-n", "--name", default="app", help="name of the project"
     )
     parser.add_argument(
-        "-t", "--tests", action="store_true", help="If the project will be tested"
+        "-t", "--tests", action="store_true",
+        help="If the project will be tested"
+    )
+    parser.add_argument(
+        "-c", "--config", action="store_true",
+        help="If the project need enviroment variables"
+    )
+    parser.add_argument(
+        "-l", "--logger", action="store_true",
+        help="If the project will have a logger system"
+    )
+    parser.add_argument(
+        "-a", "--all", action="store_true", help="To add all generated files",
     )
 
     args = parser.parse_args()
