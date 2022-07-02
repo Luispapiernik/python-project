@@ -95,13 +95,13 @@ def configure_poetry_project(args):
     with open("pyproject.toml") as file:
         for line in file.readlines():
             if "name = " in line:
-                line = re.sub(r"\"[\w-]+\"", f"\"{args.name}\"", line)
+                line = re.sub(r"\"[\w\s-]+\"", f"\"{args.name}\"", line)
             if "description = " in line:
-                line = re.sub(r"\"[\w-]+\"", f"\"{description}\"", line)
+                line = re.sub(r"\"[\w\s-]+\"", f"\"{description}\"", line)
 
             if "[tool.poetry.dev-dependencies]" in line:
                 if args.config:
-                    output_lines[-1] = "pydantic = \"^1.9.1\""
+                    output_lines[-1] = "pydantic = \"*\"\n"
                     output_lines.append("\n")
 
             output_lines.append(line)
