@@ -65,6 +65,21 @@ class Settings(BaseSettings):
 settings = Settings()
 """
 
+main_file_content = """from argparse import ArgumentParser
+
+
+def main():
+    parser = ArgumentParser()
+
+    args = parser.parse_args()
+    print(args)
+
+
+if __name__ == "__main__":
+    main()
+
+"""
+
 
 def generate_directories(args):
     # generate the root directory of the source code
@@ -95,13 +110,13 @@ def configure_poetry_project(args):
     with open("pyproject.toml") as file:
         for line in file.readlines():
             if "name = " in line:
-                line = re.sub(r"\"[\w\s-]+\"", f"\"{args.name}\"", line)
+                line = re.sub(r"\"[\w\s-]+\"", f'"{args.name}"', line)
             if "description = " in line:
-                line = re.sub(r"\"[\w\s-]+\"", f"\"{description}\"", line)
+                line = re.sub(r"\"[\w\s-]+\"", f'"{description}"', line)
 
             if "[tool.poetry.dev-dependencies]" in line:
                 if args.config:
-                    output_lines[-1] = "pydantic = \"*\"\n"
+                    output_lines[-1] = 'pydantic = "*"\n'
                     output_lines.append("\n")
 
             output_lines.append(line)
@@ -116,32 +131,47 @@ def execute(args):
         args.tests = True
         args.config = True
         args.logger = True
+        args.overwrite_main = True
 
     generate_directories(args)
     generate_files(args)
     configure_poetry_project(args)
 
+    if args.overwrite_main:
+        with open("main.py", "w") as file:
+            file.write(main_file_content)
+
 
 def main():
     parser = ArgumentParser()
 
+    parser.add_argument("-n", "--name", default="app", help="name of the project")
     parser.add_argument(
-        "-n", "--name", default="app", help="name of the project"
+        "-t", "--tests", action="store_true", help="If the project will be tested"
     )
     parser.add_argument(
-        "-t", "--tests", action="store_true",
-        help="If the project will be tested"
+        "-c",
+        "--config",
+        action="store_true",
+        help="If the project need enviroment variables",
     )
     parser.add_argument(
-        "-c", "--config", action="store_true",
-        help="If the project need enviroment variables"
+        "-l",
+        "--logger",
+        action="store_true",
+        help="If the project will have a logger system",
     )
     parser.add_argument(
-        "-l", "--logger", action="store_true",
-        help="If the project will have a logger system"
+        "-om",
+        "--overwrite-main",
+        action="store_true",
+        help="If after execution the main file content will be erased",
     )
     parser.add_argument(
-        "-a", "--all", action="store_true", help="To add all generated files",
+        "-a",
+        "--all",
+        action="store_true",
+        help="To add all generated files",
     )
 
     args = parser.parse_args()
