@@ -126,16 +126,32 @@ def configure_poetry_project(args):
             file.write(line)
 
 
+def generate_docker_structure():
+    os.makedirs("docker", exist_ok=True)
+    with open("docker/Dockerfile", mode="a"):
+        pass
+    with open("docker/docker-compose-dev.yml", mode="a"):
+        pass
+    with open("docker/docker-compose-test.yml", mode="a"):
+        pass
+    with open("docker/docker-compose-prod.yml", mode="a"):
+        pass
+
+
 def execute(args):
     if args.all:
         args.tests = True
         args.config = True
         args.logger = True
         args.overwrite_main = True
+        args.docker = True
 
     generate_directories(args)
     generate_files(args)
     configure_poetry_project(args)
+
+    if args.docker:
+        generate_docker_structure()
 
     if args.overwrite_main:
         with open("main.py", "w") as file:
@@ -166,6 +182,12 @@ def main():
         "--overwrite-main",
         action="store_true",
         help="If after execution the main file content will be erased",
+    )
+    parser.add_argument(
+        "-d",
+        "--docker",
+        action="store_true",
+        help="If the project will be deployed to a docker container",
     )
     parser.add_argument(
         "-a",
